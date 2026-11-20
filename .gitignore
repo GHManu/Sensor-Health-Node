@@ -1,0 +1,22 @@
+# Cartelle di build ROS 2 (colcon)
+build/
+install/
+log/
+
+# File compilati e cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# File compilati C++ / CMake
+CMakeFiles/
+CMakeCache.txt
+*.o
+*.so
+
+# Editor e sistema operativo
+.vscode/
+.idea/
+*.swp
+.DS_Store
