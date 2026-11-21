@@ -132,7 +132,53 @@ source /opt/ros/humble/setup.bash
 
 ---
 ## Images Backup 
+Your `~/ros2_ws/src` source directory is already mounted from the host (so it is safe on your machine), and everything else inside the container (installed packages, compiled `build`/`install` folders, system configurations) is preserved by committing it to `container_ros_backup:latest`.
 
+Run these commands in order **without touching the old container** until you have verified everything is there:
+
+1. **Create the backup image from `container_ros` (if you haven't already):**
+```bash
+podman commit container_ros container_ros_backup:latest
+
+```
+
+
+*Verification:* `podman images` lists `localhost/container_ros_backup` with the `latest` tag.
+2. **Start an identical new container from the backup image (using a new name `container_ros_new` for safety):**
+```bash
+podman run -it \
+  --name container_ros_new \
+  --net=host \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -v ~/ros2_ws/src:/root/ros2_ws/src:Z \
+  --security-opt label=disable \
+  localhost/container_ros_backup:latest bash
+
+```
+
+
+*Verification:* You drop straight into the container's `bash` shell with all your packages, files, and directories (`ros2_ws`, `build`, `install`, etc.) intact.
+3. **Once you confirm everything inside `container_ros_new` is working** (you can do this afterward):
+* Remove only the old stuck container:
+```bash
+podman rm -f container_ros
+
+```
+
+
+* Rename the new container back to `container_ros`:
+```bash
+podman rename container_ros_new container_ros
+
+```
+
+
+* *(Recommended)* Enable lingering on your user so `systemd` never clears `/run/user/1000` on logout or session close again:
+```bash
+loginctl enable-linger 1000
+
+```
 
 ---
 

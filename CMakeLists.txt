@@ -22,4 +22,20 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# scripts and headers to compile
+
+include_directories(include)
+
+add_executable(Sensor_Simulator src/Sensor_Simulator.cpp)
+ament_target_dependencies(Sensor_Simulator rclcpp std_msgs)
+
+add_executable(Sensor_Health_Node src/Sensor_Health_Node.cpp)
+ament_target_dependencies(Sensor_Health_Node rclcpp std_msgs)
+
+install(TARGETS
+  Sensor_Simulator
+  Sensor_Health_Node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
