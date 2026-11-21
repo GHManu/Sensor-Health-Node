@@ -38,6 +38,13 @@ podman run -it \
 * `osrf/ros:humble-desktop` downloads the official environment based on **Ubuntu 22.04**.
 * `--volume="$HOME/ros2_ws:/root/ros2_ws:z"` creates a folder named `ros2_ws` in your Fedora Home directory and links it inside the Ubuntu container (the `:z` flag is needed for Fedora/SELinux to prevent permission issues).
 
+### Open other local shell and: 
+(Recommended) Enable lingering for your user so that systemd will never again clear out /run/user/1000, preventing this issue from recurring upon your next reboot or session logout:
+
+```Bash
+loginctl enable-linger 1000
+```
+
 ### Step 3: Enable ROS
 
 ```bash
@@ -122,6 +129,10 @@ podman start -ai <CONTAINER_ID_OR_NAME>
 source /opt/ros/humble/setup.bash
 
 ```
+
+---
+## Images Backup 
+
 
 ---
 
