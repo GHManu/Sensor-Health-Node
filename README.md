@@ -1,6 +1,7 @@
 # Sensor-Health-Node
 A system for ROS 2 Humble, designed for a Formula Student autonomous electric vehicle team of UNIMORE university, that monitors whether sensors are still publishing information.
 
+
 # Idea
 The idea is to implement a "watchdog", a safety mechanism that detects system freezes, infinite loops, or malfunctions in a computing system and intervenes to restore it, typically by triggering a restart.
 
