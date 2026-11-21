@@ -9,6 +9,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -27,10 +29,10 @@ endif()
 include_directories(include)
 
 add_executable(Sensor_Simulator src/Sensor_Simulator.cpp)
-ament_target_dependencies(Sensor_Simulator rclcpp std_msgs)
+ament_target_dependencies(Sensor_Simulator rclcpp std_msgs sensor_msgs)
 
 add_executable(Sensor_Health_Node src/Sensor_Health_Node.cpp)
-ament_target_dependencies(Sensor_Health_Node rclcpp std_msgs)
+ament_target_dependencies(Sensor_Health_Node rclcpp std_msgs sensor_msgs)
 
 install(TARGETS
   Sensor_Simulator
