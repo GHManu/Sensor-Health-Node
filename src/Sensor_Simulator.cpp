@@ -27,7 +27,8 @@ public:
     imu_publisher = this->create_publisher<sensor_msgs::msg::Imu>("/imu/data", 10);
     laser_scan_publisher = this->create_publisher<sensor_msgs::msg::LaserScan>("/lidar/scan", 10);
     point_cloud_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("/lidar/point_cloud", 10);
-    timer = this->create_wall_timer(500ms, std::bind(&Sensor_Sim::timer_callback, this)); //0.5s
+    //creo un timer che richiama la funzione timer_callback ogni 0.5 secondi
+    timer = this->create_wall_timer(500ms, std::bind(&Sensor_Sim::timer_callback, this)); //0.5s, mi dà anche il ciclo periodico, quindi ogni 0.5s richiama la funzione timer_callback
   }
 
 private:

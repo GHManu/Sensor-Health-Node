@@ -123,6 +123,12 @@ podman start -ai <CONTAINER_ID_OR_NAME>
 
 ```
 
+* Then in another terminal, if you want two or more nodes:
+```bash
+podman exec -it <CONTAINER_ID_OR_NAME> bash
+
+```
+
 * Then run:
 
 ```bash
@@ -250,6 +256,7 @@ Return to the workspace root, build, and activate your workspace environment:
 cd /root/ros2_ws
 colcon build
 source /root/ros2_ws/install/setup.bash
+source install/setup.bash
 
 ```
 
