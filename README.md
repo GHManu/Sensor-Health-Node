@@ -15,8 +15,8 @@ How it works:
    
    - Intervention in the event of a freeze: If the system freezes or enters a deadlock and fails to update the timer in time, the countdown expires, triggering a predefined action (such as a hardware or software restart, transitioning to a safe state, or saving diagnostic data).
 
-## General Architecture
-**How it works**:
+## General
+**How it should works**:
 - the health node subscribes to the measurement topic;
 - upon receiving each message, it updates the "timestamp of the last message";
 - a periodic timer checks whether the difference between the current time and the timestamp of the last message exceeds a specific threshold (timeout);
@@ -33,3 +33,8 @@ How it works:
 **Two useful concepts**:
 - QoS (Quality of Service): publishers and subscribers must have compatible profiles. For sensor data, "best effort" is frequently used; however, if the profiles are incompatible, no data will be received.
 - Deadline QoS: ROS2 includes a built-in mechanism (QoS deadline) that signals when a message fails to arrive within a specified timeframe. While this serves as an alternative to a manual timer, using a watchdog with a timer is often clearer and more flexible for demonstration purposes.
+
+## Implementation
+* Sensor_Simulator: Simulates multiple sensors and publishes their readings to individual topics using custom or standard .msg definitions.
+
+* Sensor_Health_Node: Subscribes to the sensor topics to track message continuity and detect dropouts or stalls, then triggers corrective or diagnostic actions on faulty sensors via .srv calls.
