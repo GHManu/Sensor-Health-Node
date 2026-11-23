@@ -1,6 +1,7 @@
 #include <array>
-#include <memory>
 #include <chrono>
+#include <string>
+#include <unordered_map>
 
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"  //tipi: Header(timestamp e id), String, Int32
@@ -17,6 +18,13 @@ using namespace std::chrono_literals;
 const float TIMEOUT_THRESHOLD = 1.0; //secondi
 
 
+struct SensorStatus {
+  std::string name;
+  rclcpp::Time last_msg_time;
+  bool warned;
+};
+
+
 class Sensor_Health_Node : public rclcpp::Node{
 public:
   Sensor_Health_Node() : Node("Sensor_Health_Node") {
@@ -24,9 +32,10 @@ public:
 
     // Inizializzo i timestamp con il clock corrente del nodo per evitare mismatch di clock
     const auto now = this->get_clock()->now();
-    imu_last_msg_time = now;
-    laser_scan_last_msg_time = now;
-    point_cloud_last_msg_time = now;
+
+    sensors_["imu"] = SensorStatus{"imu", now, false};
+    sensors_["laser_scan"] = SensorStatus{"laser_scan", now, false};
+    sensors_["point_cloud"] = SensorStatus{"point_cloud", now, false};
 
     //il nodo può iscriversi a più topic
     imu_subscriber = this->create_subscription<sensor_msgs::msg::Imu>(
@@ -38,13 +47,6 @@ public:
     point_cloud_subscriber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
       "/lidar/point_cloud", 10, std::bind(&Sensor_Health_Node::topic_callback_point_cloud, this, _1));
 
-    // devo creare una funzione che mi controlli il tempo dall'ultimo messaggio 
-    // ricevuto a quello che riceverò dopo, così da poter capire se il sensore è attivo o meno, 
-    // se non ricevo messaggi per un certo periodo di tempo, stampo un warning 
-    // quindi devo salvare il timestamp dell'ultimo messaggio
-    //  ricevuto, e poi controllo se il tempo trascorso è maggiore di un certo valore, 
-    // se lo è stampo un warning
-
     // Esegue watchdog_timer() periodicamente ogni 200 ms ovvero 0.2 secondi, 
     // quindi controlla se è passato più di 1 secondo dall'ultimo messaggio ricevuto
     timer_ = this->create_wall_timer(
@@ -55,39 +57,35 @@ private:
 
   void topic_callback_imu(const sensor_msgs::msg::Imu::SharedPtr msg) {
     (void)msg;  //è un cast per evitare warning di variabile non usata, ma non è necessario
-    RCLCPP_INFO(this->get_logger(), "Ricevuto messaggio IMU");
-    imu_last_msg_time = this->get_clock()->now();
-    imu_warned = false;
+    on_sensor_msg("imu");
   }
 
   void topic_callback_laser_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
     (void)msg;
-    RCLCPP_INFO(this->get_logger(), "Ricevuto messaggio LaserScan");
-    laser_scan_last_msg_time = this->get_clock()->now();
-    laser_scan_warned = false;
+    on_sensor_msg("laser_scan");
   }
 
   void topic_callback_point_cloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
     (void)msg;
-    RCLCPP_INFO(this->get_logger(), "Ricevuto messaggio PointCloud2");
-    point_cloud_last_msg_time = this->get_clock()->now();
-    point_cloud_warned = false;
+    on_sensor_msg("point_cloud");
+  }
+
+  void on_sensor_msg(const std::string & key) {
+    auto & s = sensors_.at(key);
+    RCLCPP_INFO(this->get_logger(), "Ricevuto messaggio da %s", s.name.c_str());
+    s.last_msg_time = this->get_clock()->now();
+    s.warned = false;
   }
 
   void watchdog_timer() {
     const auto now = this->get_clock()->now();
 
-    if ((now - imu_last_msg_time).seconds() > TIMEOUT_THRESHOLD && !imu_warned) {
-      RCLCPP_WARN(this->get_logger(), "Nessun messaggio ricevuto da IMU");
-      imu_warned = true;
-    }
-    if ((now - laser_scan_last_msg_time).seconds() > TIMEOUT_THRESHOLD && !laser_scan_warned) {
-      RCLCPP_WARN(this->get_logger(), "Nessun messaggio ricevuto da LaserScan");
-      laser_scan_warned = true;
-    }
-    if ((now - point_cloud_last_msg_time).seconds() > TIMEOUT_THRESHOLD && !point_cloud_warned) {
-      RCLCPP_WARN(this->get_logger(), "Nessun messaggio ricevuto da PointCloud2");
-      point_cloud_warned = true;
+    for (auto & pair : sensors_) {
+      auto & s = pair.second;
+      if ((now - s.last_msg_time).seconds() > TIMEOUT_THRESHOLD && !s.warned) {
+        RCLCPP_WARN(this->get_logger(), "Nessun messaggio ricevuto da %s", s.name.c_str());
+        s.warned = true;
+      }
     }
   }
 
@@ -96,13 +94,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_subscriber;
   rclcpp::TimerBase::SharedPtr timer_;
 
-  rclcpp::Time imu_last_msg_time;
-  rclcpp::Time laser_scan_last_msg_time;
-  rclcpp::Time point_cloud_last_msg_time;
-
-  bool imu_warned = false;
-  bool laser_scan_warned = false;
-  bool point_cloud_warned = false;
+  std::unordered_map<std::string, SensorStatus> sensors_; //mappa per memorizzare lo stato di ciascun sensore
 
 protected:
 };
