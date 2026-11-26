@@ -12,6 +12,7 @@ namespace fs = std::filesystem;
 
 //std::string non è un tipo letterale in C++17 (ha un distruttore non banale),
 // quindi constexpr std::string dà errore di compilazione. quindi metto inline
+//percorso dipendente dalla directory in cui compili
 inline const std::string CONFIG_DIR = "./src/Sensor-Health-Node/config";
 
 
