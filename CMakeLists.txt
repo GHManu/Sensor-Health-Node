@@ -8,9 +8,10 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rosidl_runtime_cpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-
+find_package(yaml-cpp REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -25,17 +26,17 @@ if(BUILD_TESTING)
 endif()
 
 # scripts and headers to compile
-
 include_directories(include)
 
-add_executable(Sensor_Simulator src/Sensor_Simulator.cpp)
-ament_target_dependencies(Sensor_Simulator rclcpp std_msgs sensor_msgs)
 
-add_executable(Sensor_Health_Node src/Sensor_Health_Node.cpp)
-ament_target_dependencies(Sensor_Health_Node rclcpp std_msgs sensor_msgs)
+add_executable(Sensor_Health_Node
+  src/Sensor_Health_Node.cpp
+  src/Read_Config.cpp
+)
+ament_target_dependencies(Sensor_Health_Node rclcpp rosidl_runtime_cpp sensor_msgs)
+target_link_libraries(Sensor_Health_Node yaml-cpp stdc++fs)
 
 install(TARGETS
-  Sensor_Simulator
   Sensor_Health_Node
   DESTINATION lib/${PROJECT_NAME}
 )

@@ -1,28 +1,8 @@
-#include <array>
-#include <chrono>
-#include <string>
-#include <unordered_map>
+#include "Sensor-Health-Node/Sensor_Health_Node.hpp"
 
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"  //tipi: Header(timestamp e id), String, Int32
-
-//messaggi per sensori
-/* https://docs.ros.org/en/noetic/api/sensor_msgs/html/index-msg.html */
-#include "sensor_msgs/msg/imu.hpp"
-#include "sensor_msgs/msg/laser_scan.hpp"
-#include "sensor_msgs/msg/point_cloud2.hpp"
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
-
-const float TIMEOUT_THRESHOLD = 1.0; //secondi
-
-
-struct SensorStatus {
-  std::string name;
-  rclcpp::Time last_msg_time;
-  bool warned;
-};
 
 
 class Sensor_Health_Node : public rclcpp::Node{
@@ -30,12 +10,19 @@ public:
   Sensor_Health_Node() : Node("Sensor_Health_Node") {
     RCLCPP_INFO(this->get_logger(), "WatchDog avviato pronto a controllare");
 
+    configs = read_config.read_all_yaml_files(CONFIG_DIR);
+    set_topics();
+
+    subscribers.clear();
+
+    
+
     // Inizializzo i timestamp con il clock corrente del nodo per evitare mismatch di clock
     const auto now = this->get_clock()->now();
 
-    sensors_["imu"] = SensorStatus{"imu", now, false};
-    sensors_["laser_scan"] = SensorStatus{"laser_scan", now, false};
-    sensors_["point_cloud"] = SensorStatus{"point_cloud", now, false};
+    sensors_["imu"] = SensorStatus{"imu", "imu", now, false};
+    sensors_["laser_scan"] = SensorStatus{"laser_scan", "laser_scan", now, false};
+    sensors_["point_cloud"] = SensorStatus{"point_cloud", "point_cloud", now, false};
 
     //il nodo può iscriversi a più topic
     imu_subscriber = this->create_subscription<sensor_msgs::msg::Imu>(
@@ -77,6 +64,31 @@ private:
     s.warned = false;
   }
 
+
+  // Imposta i topic dei sensori dai file di configurazione YAML
+  void set_topics(){
+    for (const auto& cfg : configs) {
+      const auto& node = cfg.node;
+      if (node.IsNull() || !node["fast_limo"] || !node["fast_limo"]["ros__parameters"] ||
+          !node["fast_limo"]["ros__parameters"]["topics"] ||
+          !node["fast_limo"]["ros__parameters"]["topics"]["input"] ||
+          !node["fast_limo"]["ros__parameters"]["topics"]["input"]["lidar"] ||
+          !node["fast_limo"]["ros__parameters"]["topics"]["input"]["imu"]) {
+        RCLCPP_ERROR(this->get_logger(), "Errore nella configurazione dei topic nel file %s", cfg.filename.c_str());
+        continue;
+      }
+
+      std::string lidar_topic = node["fast_limo"]["ros__parameters"]["topics"]["input"]["lidar"].as<std::string>();
+      std::string imu_topic = node["fast_limo"]["ros__parameters"]["topics"]["input"]["imu"].as<std::string>();
+
+      if (cfg.filename == "cat.yaml") {
+        cat_lidar_topic = lidar_topic;
+        cat_imu_topic = imu_topic;
+      }
+      //...
+    }
+  }
+
   void watchdog_timer() {
     const auto now = this->get_clock()->now();
 
@@ -89,9 +101,21 @@ private:
     }
   }
 
+
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_subscriber;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_subscriber;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_subscriber;
+
+  // Oggetti per la lettura dei file di configurazione YAML
+  Read_Config read_config;
+  std::list<ConfigFile> configs;
+
+  //lista di subscribers per i topic dei sensori
+  std::list<rclcpp::SubscriptionBase::SharedPtr> subscribers;
+
+  std::string cat_lidar_topic;
+  std::string cat_imu_topic;
+  
   rclcpp::TimerBase::SharedPtr timer_;
 
   std::unordered_map<std::string, SensorStatus> sensors_; //mappa per memorizzare lo stato di ciascun sensore
